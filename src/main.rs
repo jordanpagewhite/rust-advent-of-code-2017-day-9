@@ -23,9 +23,7 @@ fn main() {
     let score = get_group_score(input);
     let part1_debug: Vec<u8> = input.into_iter().map(|p| p.depth).collect();
     println!("part 1: {score}");
-    if DEBUG {
-        println!("part 1 (debug): {:?}", part1_debug);
-    }
+    if DEBUG { println!("part 1 (debug): {:?}", part1_debug); }
 }
 
 fn parse(input: &str) -> Vec<Group> {
@@ -33,19 +31,18 @@ fn parse(input: &str) -> Vec<Group> {
     let mut depth: u8 = 1;
     let mut is_within_garbage: bool = false;
     let mut last_valid_character_closed_group: bool = false;
-    let mut garbage_character_count: usize = 0;
+    let mut garbage_character_count: u16 = 0;
 
-    if DEBUG {
-        println!("c\tdepth\tin_garb\tclosed\tgarbaage");
-    }
+    if DEBUG { println!("c\tdepth\tin_garb\tclosed\tgarbaage"); }
+
     for (pos, c) in input.char_indices() {
-        if is_within_garbage && c != '>' && !is_cancelled(c, pos, input) {
-            garbage_character_count += 1;
-        }
-        if DEBUG {
-            debug_iteration(c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count);
-        }
-        if !is_cancelled(c, pos, input) && (!is_within_garbage || c == '>') {
+        let is_cancelled: bool = is_cancelled(c, pos, input);
+        // Increment if this is garbage.
+        garbage_character_count += should_increment_garbage_character_count(is_within_garbage, c, is_cancelled) as u16;
+
+        if DEBUG { debug_iteration(c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count); }
+
+        if is_valid_character(is_within_garbage, c, is_cancelled) {
             match c {
                 '<' => {
                     is_within_garbage = true;
@@ -81,7 +78,15 @@ fn parse(input: &str) -> Vec<Group> {
     groups
 }
 
-fn debug_iteration(c: char, depth: u8, is_within_garbage: bool, last_valid_character_closed_group: bool, garbage_character_count: usize) {
+fn is_valid_character(is_within_garbage: bool, c: char, is_cancelled: bool) -> bool {
+    !is_cancelled && (!is_within_garbage || c == '>')
+}
+
+fn should_increment_garbage_character_count(is_within_garbage: bool, c: char, is_cancelled: bool) -> bool {
+    is_within_garbage && c != '>' && !is_cancelled
+}
+
+fn debug_iteration(c: char, depth: u8, is_within_garbage: bool, last_valid_character_closed_group: bool, garbage_character_count: u16) {
     if is_within_garbage {
         println!("{}\t{}\t{}\t{}\t{}", c.to_string().red(), depth.to_string().red(), is_within_garbage.to_string().red(), last_valid_character_closed_group.to_string().red(), garbage_character_count.to_string().red());
     } else {
@@ -95,6 +100,8 @@ fn is_cancelled(c: char, pos: usize, input: &str) -> bool {
     } else if pos >= 1 && input.chars().nth(pos-1).unwrap() == '!' {
         let mut num_consecutive_cancels = 1;
         let mut positions_back = 2;
+        // While the previous character is a cancel `!`, continue to iterate back through
+        // characters, counting the number of consecutive cancels in `num_consecutive_cancels`.
         while (pos - positions_back) >= 0 && input.chars().nth(pos-positions_back).unwrap() == '!' {
             num_consecutive_cancels += 1;
             positions_back += 1;
@@ -214,7 +221,7 @@ mod tests__unit__get_group_score {
 
     #[test]
     fn positive_case() {
-        let sum: usize = 7;
+        let sum = 7;
         let mut groups = Vec::new();
         groups.push(Group { depth: 1 });
         groups.push(Group { depth: 2 });
