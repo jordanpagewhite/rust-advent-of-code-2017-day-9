@@ -16,12 +16,16 @@ impl fmt::Debug for Group {
     }
 }
 
+const DEBUG: bool = false;
+
 fn main() {
     let input = &parse(include_str!("../data/input.txt"));
     let (part1, part2) = solve(input);
-    let part2_debug: Vec<u8> = part2.into_iter().map(|p| p.depth).collect();
+    let part1_debug: Vec<u8> = part2.into_iter().map(|p| p.depth).collect();
     println!("part 1: {part1}");
-    println!("part 2: {:?}", part2_debug);
+    if DEBUG {
+        println!("part 1 (debug): {:?}", part1_debug);
+    }
 }
 
 fn parse(input: &str) -> Vec<Group> {
@@ -31,14 +35,16 @@ fn parse(input: &str) -> Vec<Group> {
     let mut last_valid_character_closed_group = false;
     let mut garbage_character_count: usize = 0;
 
-    // @todo Debug line.
-    println!("c\tdepth\tin_garb\tclosed\tgarbaage");
+    if DEBUG {
+        println!("c\tdepth\tin_garb\tclosed\tgarbaage");
+    }
     for (pos, c) in input.char_indices() {
         if is_within_garbage && c != '>' && !is_cancelled(c, pos, input) {
             garbage_character_count += 1;
         }
-        // @todo Remove debugging lines.
-        debug_iteration(c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count);
+        if DEBUG {
+            debug_iteration(c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count);
+        }
         if !is_cancelled(c, pos, input) && (!is_within_garbage || c == '>') {
             if c == '<' {
                 is_within_garbage = true;
@@ -53,20 +59,11 @@ fn parse(input: &str) -> Vec<Group> {
                     continue;
                 }
             } else if c == '{' {
-                if last_valid_character_closed_group {
-                    depth -= 1;
-                }
-
-                groups.push(Group {
-                    depth
-                });
-                // We are now one group deeper after entering a group with '{'.
+                depth -= last_valid_character_closed_group as u8;
+                groups.push(Group {depth});
                 depth += 1;
             } else if c == '}' {
-                if last_valid_character_closed_group {
-                    depth -= 1;
-                }
-
+                depth -= last_valid_character_closed_group as u8;
                 last_valid_character_closed_group = true;
                 continue;
             } else if c == ',' && last_valid_character_closed_group {
@@ -77,7 +74,7 @@ fn parse(input: &str) -> Vec<Group> {
         }
     }
 
-    println!("garbage: {}", garbage_character_count);
+    println!("Part 2: {}", garbage_character_count);
 
     groups
 }
@@ -100,9 +97,6 @@ fn is_cancelled(c: char, pos: usize, input: &str) -> bool {
             num_consecutive_cancels += 1;
             positions_back += 1;
         }
-        // @todo Debug line.
-        // println!("{} {}", num_consecutive_cancels, (num_consecutive_cancels % 2 == 1));
-        //
         // If this character, `c`, is preceded by an odd number of cancel characters, `!`, then
         // this character, `c`, is cancelled.
         if num_consecutive_cancels % 2 == 1 {
