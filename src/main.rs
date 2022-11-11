@@ -21,7 +21,7 @@ const DEBUG: bool = false;
 fn main() {
     let input = &parse(include_str!("../data/input.txt"));
     let score = get_group_score(input);
-    let part1_debug: Vec<u8> = input.into_iter().map(|p| p.depth).collect();
+    let part1_debug: Vec<u8> = input.iter().map(|p| p.depth).collect();
     println!("part 1: {score}");
     if DEBUG { println!("part 1 (debug): {:?}", part1_debug); }
 }
@@ -102,6 +102,12 @@ fn is_cancelled(c: char, pos: usize, input: &str) -> bool {
         let mut positions_back = 2;
         // While the previous character is a cancel `!`, continue to iterate back through
         // characters, counting the number of consecutive cancels in `num_consecutive_cancels`.
+        //
+        // @todo I do not understand why Clippy considers the first comparison in the conditional
+        // below to be absurd or unused. If you remove it, you can/will encounter out-of-bounds,
+        // fatal error(s).
+        #[allow(clippy::absurd_extreme_comparisons)]
+        #[allow(unused_comparisons)]
         while (pos - positions_back) >= 0 && input.chars().nth(pos-positions_back).unwrap() == '!' {
             num_consecutive_cancels += 1;
             positions_back += 1;
