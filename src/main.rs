@@ -20,9 +20,9 @@ const DEBUG: bool = false;
 
 fn main() {
     let input = &parse(include_str!("../data/input.txt"));
-    let (part1, part2) = solve(input);
-    let part1_debug: Vec<u8> = part2.into_iter().map(|p| p.depth).collect();
-    println!("part 1: {part1}");
+    let score = get_group_score(input);
+    let part1_debug: Vec<u8> = input.into_iter().map(|p| p.depth).collect();
+    println!("part 1: {score}");
     if DEBUG {
         println!("part 1 (debug): {:?}", part1_debug);
     }
@@ -31,8 +31,8 @@ fn main() {
 fn parse(input: &str) -> Vec<Group> {
     let mut groups = Vec::new();
     let mut depth: u8 = 1;
-    let mut is_within_garbage = false;
-    let mut last_valid_character_closed_group = false;
+    let mut is_within_garbage: bool = false;
+    let mut last_valid_character_closed_group: bool = false;
     let mut garbage_character_count: usize = 0;
 
     if DEBUG {
@@ -46,31 +46,33 @@ fn parse(input: &str) -> Vec<Group> {
             debug_iteration(c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count);
         }
         if !is_cancelled(c, pos, input) && (!is_within_garbage || c == '>') {
-            if c == '<' {
-                is_within_garbage = true;
-
-                if last_valid_character_closed_group {
+            match c {
+                '<' => {
+                    is_within_garbage = true;
+                    if last_valid_character_closed_group { continue; }
+                }
+                '>' => {
+                    is_within_garbage = false;
+                    if last_valid_character_closed_group { continue; }
+                }
+                '{' => {
+                    depth -= last_valid_character_closed_group as u8;
+                    groups.push(Group {depth});
+                    depth += 1;
+                    last_valid_character_closed_group = false;
+                }
+                '}' => {
+                    depth -= last_valid_character_closed_group as u8;
+                    last_valid_character_closed_group = true;
                     continue;
                 }
-            } else if c == '>' {
-                is_within_garbage = false;
-
-                if last_valid_character_closed_group {
-                    continue;
+                ',' => {
+                    if last_valid_character_closed_group { continue; }
                 }
-            } else if c == '{' {
-                depth -= last_valid_character_closed_group as u8;
-                groups.push(Group {depth});
-                depth += 1;
-            } else if c == '}' {
-                depth -= last_valid_character_closed_group as u8;
-                last_valid_character_closed_group = true;
-                continue;
-            } else if c == ',' && last_valid_character_closed_group {
-                continue;
+                _ => {
+                    last_valid_character_closed_group = false;
+                }
             }
-
-            last_valid_character_closed_group = false;
         }
     }
 
@@ -107,10 +109,8 @@ fn is_cancelled(c: char, pos: usize, input: &str) -> bool {
     false
 }
 
-fn solve(groups: &[Group]) -> (usize, &[Group]) {
-    let part1: usize = groups.iter().map(|a| a.depth as usize).sum();
-    //let part1: usize = 0;
-    (part1, groups)
+fn get_group_score(groups: &[Group]) -> usize {
+    groups.iter().map(|a| a.depth as usize).sum()
 }
 
 #[cfg(test)]
@@ -209,7 +209,7 @@ mod tests__unit__parse {
 
 #[cfg(test)]
 #[allow(non_snake_case)]
-mod tests__unit__solve {
+mod tests__unit__get_group_score {
     use super::*;
 
     #[test]
@@ -220,7 +220,7 @@ mod tests__unit__solve {
         groups.push(Group { depth: 2 });
         groups.push(Group { depth: 2 });
         groups.push(Group { depth: 2 });
-        assert_eq!(solve(groups.as_slice()), (sum, groups.as_slice()));
+        assert_eq!(get_group_score(groups.as_slice()), sum);
     }
 }
 
@@ -278,7 +278,7 @@ mod tests {
     fn test_one_group() {
         // {}, score of 1. 1 point.
         let input = &parse("{}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 1);
         assert_eq!(solution, 1);
     }
@@ -287,7 +287,7 @@ mod tests {
     fn test_only_curly_braces() {
         // {{{}}}, 3 groups. 1+2+3=6 points.
         let input = &parse("{{{}}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 3);
         assert_eq!(solution, 6);
     }
@@ -296,7 +296,7 @@ mod tests {
     fn test_curly_braces_and_commas() {
         // {{},{}}, 3 groups 1+2+2=5 points.
         let input = &parse("{{},{}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 3);
         assert_eq!(solution, 5);
 
@@ -306,7 +306,7 @@ mod tests {
     fn test_many_curly_braces_and_commas() {
         // {{{},{},{{}}}}, 6 groups. 1+2+3+3+3+4=16 points.
         let input = &parse("{{{},{},{{}}}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 6);
         assert_eq!(solution, 16);
     }
@@ -315,7 +315,7 @@ mod tests {
     fn test_one_garbage_group() {
         // {<{},{},{{}}>}, 1 group. 1=1 points.
         let input = &parse("{<{},{},{{}}>}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 1);
         assert_eq!(solution, 1);
     }
@@ -324,7 +324,7 @@ mod tests {
     fn test_many_garbage_groups() {
         // {<a>,<a>,<a>,<a>}, 1 group. 1=1 points.
         let input = &parse("{<a>,<a>,<a>,<a>}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 1);
         assert_eq!(solution, 1);
     }
@@ -333,7 +333,7 @@ mod tests {
     fn test_many_groups_containing_garbage() {
         // {{<a>},{<a>},{<a>},{<a>}}, 5 groups. 1+2+2+2+2=9 points.
         let input = &parse("{{<a>},{<a>},{<a>},{<a>}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 5);
         assert_eq!(solution, 9);
     }
@@ -342,7 +342,7 @@ mod tests {
     fn test_many_groups_with_cancels() {
         // {{<!>},{<!>},{<!>},{<a>}}, 2 groups. 1+2=3 points.
         let input = &parse("{{<!>},{<!>},{<!>},{<a>}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 2);
         assert_eq!(solution, 3);
     }
@@ -351,7 +351,7 @@ mod tests {
     fn test_adjacent_groups_containing_garbage() {
         // {{<ab>},{<ab>},{<ab>},{<ab>}}, score of 1 + 2 + 2 + 2 + 2 = 9.
         let input = &parse("{{<ab>},{<ab>},{<ab>},{<ab>}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 5);
         assert_eq!(solution, 9);
 
@@ -361,7 +361,7 @@ mod tests {
     fn test_adjacent_groups_containing_garbage_with_double_exclamations() {
         // {{<!!>},{<!!>},{<!!>},{<!!>}}, score of 1 + 2 + 2 + 2 + 2 = 9.
         let input = &parse("{{<!!>},{<!!>},{<!!>},{<!!>}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 5);
         assert_eq!(solution, 9);
     }
@@ -370,7 +370,7 @@ mod tests {
     fn test_cancelled_contents() {
         // {{<a!>},{<a!>},{<a!>},{<ab>}}, score of 1 + 2 = 3.
         let input = &parse("{{<a!>},{<a!>},{<a!>},{<ab>}}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 2);
         assert_eq!(solution, 3);
     }
@@ -382,7 +382,7 @@ mod tests {
         //
         // {},<!>>{}, score 1 + 1 = 2.
         let input = &parse("{},<!>>{}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 2);
         assert_eq!(solution, 2);
     }
@@ -390,7 +390,7 @@ mod tests {
     #[test]
     fn test_large_input() {
         let input = &parse("{{{{{{},<!!!>>}},{{{{{{{<a!u!>!!!>!!}<>},{}}},<!>},<!!a!>,<!!!!!>!>!>,<i!io!!,!!}i!!!>},<a!>},<>},{<!>,<i'i}u{!\"!!!!u!}>}},{}}},{{{{<i!!!>,<<!!e}!!!!!!i!>{>},{}},{{{<i\"!>aa>}");
-        let solution = solve(input).0;
+        let solution = get_group_score(input);
         assert_eq!(input.len(), 24);
         assert_eq!(solution, 143);
     }
