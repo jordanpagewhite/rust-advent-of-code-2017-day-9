@@ -82,14 +82,6 @@ fn should_increment_garbage_character_count(is_within_garbage: bool, c: char, is
     is_within_garbage && c != '>' && !is_cancelled
 }
 
-fn debug_iteration(c: char, depth: u8, is_within_garbage: bool, last_valid_character_closed_group: bool, garbage_character_count: u16) {
-    if is_within_garbage {
-        println!("{}\t{}\t{}\t{}\t{}", c.to_string().red(), depth.to_string().red(), is_within_garbage.to_string().red(), last_valid_character_closed_group.to_string().red(), garbage_character_count.to_string().red());
-    } else {
-        println!("{}\t{}\t{}\t{}\t{}", c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count);
-    }
-}
-
 fn is_cancelled(c: char, pos: usize, input: &str) -> bool {
     if c == '!' {
         return true;
@@ -120,6 +112,14 @@ fn is_cancelled(c: char, pos: usize, input: &str) -> bool {
 
 fn get_group_score(groups: &[Group]) -> usize {
     groups.iter().map(|a| a.depth as usize).sum()
+}
+
+fn debug_iteration(c: char, depth: u8, is_within_garbage: bool, last_valid_character_closed_group: bool, garbage_character_count: u16) {
+    if is_within_garbage {
+        println!("{}\t{}\t{}\t{}\t{}", c.to_string().red(), depth.to_string().red(), is_within_garbage.to_string().red(), last_valid_character_closed_group.to_string().red(), garbage_character_count.to_string().red());
+    } else {
+        println!("{}\t{}\t{}\t{}\t{}", c, depth, is_within_garbage, last_valid_character_closed_group, garbage_character_count);
+    }
 }
 
 #[cfg(test)]
